@@ -27,11 +27,11 @@ if [[ -d "/sys/firmware/efi/efivars" ]]; then
     title      Arch Linux
     linux      /vmlinuz-linux
     initrd     /initramfs-linux.img
-    options    root=/dev/sda2 rw
+    options    root=/dev/sda2 rootfstype=ext4 add_efi_memmap rw
 EOF
 
   cat <<EOF > /boot/loader/loader.conf
-    timeout 3
+    timeout 2
     default arch
 EOF
 
@@ -42,6 +42,7 @@ EOF
   # modify root partion in loader conf
   root_partition=`mount  | grep 'on / ' | cut -d' ' -f1`
   root_partition=`df / | tail -1 | cut -d' ' -f1`
+  root_partition=`blkid|grep $root_partition|awk '{for(i=1;i<=NF;i++)if($i~/PARTUUID/)print $i}'|sed -e 's/"//g`
   sed -i "s#/dev/sda2#$root_partition#" /boot/loader/entries/arch.conf
 else
   disk=`df / | tail -1 | cut -d' ' -f1 | sed 's#[0-9]\+##g'`
@@ -67,8 +68,12 @@ cat <<EOF >> /etc/pacman.conf
 SigLevel = Optional TrustedOnly
 Server = https://mirrors.ustc.edu.cn/archlinuxcn/\$arch
 Server = https://mirrors.tuna.tsinghua.edu.cn/archlinuxcn/\$arch
-Server = http://mirrors.cqu.edu.cn/archlinux-cn/\$arch
 Server = http://repo.archlinuxcn.org/\$arch
+[blackarch]
+SigLevel = Optional TrustAll
+Server = https://mirrors.ustc.edu.cn/blackarch/$repo/os/$arch
+[infinality-bundle]
+Server = http://bohoomil.com/repo/$arch
 EOF
 pacman -Syy
 pacman -S --noconfirm archlinuxcn-keyring
